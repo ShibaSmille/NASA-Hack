@@ -1,0 +1,48 @@
+# API, passwords
+.env
+.envrc
+.env.production
+.env.local
+*.log
+pip-log.txt
+pip-delete-this-directory.txt
+
+# VIRTUAL ENVIROMENT
+.venv
+env/
+venv/
+ENV/
+.pdm-python
+.pixi
+
+# KECH AND PYTHON
+__pycache__/
+*.py[codz]
+__pypackages__/
+
+# Результати зборки та установки
+build/
+dist/
+.eggs/
+*.egg
+*.egg-info/
+develop-eggs/
+
+# кеш редактор та тестинг
+.cache
+.pytest_cache/
+.mypy_cache/
+.pytype/
+.ropeproject
+.spyderproject
+.spyproject
+
+# НАЛАШТУВАННЯ VISUAL STUDIO CODE ТА ІНШИХ IDE
+.vscode/
+.cursorignore
+.cursorindexingignore
+
+# ФАЙЛИ ОПЕРАЦІЙКИ
+.DS_Store
+Thumbs.db
+.ruff_cache/
