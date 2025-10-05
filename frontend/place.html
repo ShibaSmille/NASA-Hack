@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="uk">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Pick the place</title>
+
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="place.css">
+
+    <!-- Leaflet -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+</head>
+
+<body>
+    <main class="screen place">
+        <h2>Pick the place</h2>
+
+        <!-- міні-карта -->
+        <div id="miniMap" class="mini-map"></div>
+
+
+        <!-- ПОШУК -->
+        <div class="search">
+            <input id="q" placeholder="Type a city (e.g., Kyiv)" />
+        </div>
+
+        <!-- підв’язана країна -->
+        <div id="countryHint" class="country-hint">Country: —</div>
+
+        <!-- кнопка Пошук під підказкою -->
+        <button id="searchBtn" class="btn search-btn">Search</button>
+
+        <!-- результати -->
+        <ul id="results" class="results"></ul>
+    </main>
+
+    <script>
+        // 1) Мінімапа
+        const mini = L.map('miniMap', { zoomControl: false }).setView([50.45, 30.52], 6);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(mini);
+        let marker;
+
+        // перехід на time.html з вибраним місцем
+        function goTime(lat, lon, name, country) {
+            localStorage.setItem("chosenPlace", JSON.stringify({ lat, lon, name, country }));
+            location.href = "time.html";
+        }
+
+        function setMiniMarker(lat, lon, name) {
+            if (marker) mini.removeLayer(marker);
+            marker = L.marker([lat, lon]).addTo(mini).bindPopup(name).openPopup();
+            mini.setView([lat, lon], 10);
+        }
+
+        // 2) Пошук міст (Nominatim)
+        async function searchCity() {
+            const query = document.getElementById("q").value.trim();
+            if (!query) return;
+
+            const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=5&addressdetails=1`;
+            const res = await fetch(url, { headers: { "Accept-Language": "en" } });
+            const data = await res.json();
+
+            // показати країну за першим (найкращим) результатом
+            const first = data[0];
+            const country = first?.address?.country || "—";
+            document.getElementById("countryHint").textContent = `Country: ${country}`;
+
+            // список результатів
+            const list = document.getElementById("results");
+            list.innerHTML = data.map(d => `
+        <li
+          data-lat="${d.lat}"
+          data-lon="${d.lon}"
+          data-name="${d.display_name}"
+          data-country="${d.address?.country || ''}"
+        >
+          ${d.display_name}
+        </li>
+      `).join("");
+
+            // автофокус на список
+            if (first) {
+                setMiniMarker(+first.lat, +first.lon, first.display_name);
+            }
+        }
+
+        document.getElementById("searchBtn").addEventListener("click", searchCity);
+        document.getElementById("q").addEventListener("keydown", (e) => { if (e.key === "Enter") searchCity(); });
+
+        // 3) Клік по результату → одразу на time.html
+        document.getElementById("results").addEventListener("click", (e) => {
+            const li = e.target.closest("li"); if (!li) return;
+            const lat = +li.dataset.lat, lon = +li.dataset.lon;
+            const name = li.dataset.name, country = li.dataset.country || "—";
+            setMiniMarker(lat, lon, name);
+            goTime(lat, lon, name, country);
+        });
+    </script>
+</body>
+
+</html>

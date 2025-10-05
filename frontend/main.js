@@ -33,3 +33,6 @@ function fetchOdds() {
         console.error('Error:', error);
     });
 }
+
+
+

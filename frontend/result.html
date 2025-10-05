@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="uk">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Results</title>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="result.css">
+</head>
+
+<body>
+    <main class="screen results">
+        <h2>Results</h2>
+
+        <section class="top-row">
+            <div class="pill card">
+                <div class="label">Place</div>
+                <div id="rPlace" class="value">—</div>
+            </div>
+
+            <div class="pill card">
+                <div class="label">Date</div>
+                <div id="rDate" class="value">—</div>
+            </div>
+        </section>
+
+        <!-- нижні блоки для секцій результатів -->
+        <section class="block block-blue"></section>
+        <section class="block block-white"></section>
+        <section class="block block-mint"></section>
+        <section class="block block-pink"></section>
+        <section class="block block-yellow"></section>
+
+        <a class="btn-dark" href="index.html">Start over</a>
+    </main>
+
+    <script>
+        // 1) ПІДТЯГУЄМО МІСЦЕ
+        const place = JSON.parse(localStorage.getItem("chosenPlace") || "{}");
+        // очікується place.name ("Kyiv, Ukraine")
+        document.getElementById("rPlace").textContent = place.name || "—";
+
+        // 2) ПІДТЯГУЄМО ДАТУ
+        const dateObj = JSON.parse(localStorage.getItem("chosenDate") || "{}");
+        // з time.html ми маємо .iso = "YYYY-MM-DD"
+        function isoToDDMMYYYY(iso) {
+            if (!iso || typeof iso !== "string" || !iso.includes("-")) return "";
+            const [y, m, d] = iso.split("-");
+            return `${d}/${m}/${y}`;
+        }
+        const prettyEU = isoToDDMMYYYY(dateObj.iso) || dateObj.displayUS || "—";
+        document.getElementById("rDate").textContent = prettyEU;
+
+        // (опційно) якщо нічого не знайдено — кнопка веде назад на time.html
+        if (!place.name || !dateObj.iso) {
+            document.querySelector(".btn-dark").setAttribute("href", "time.html");
+        }
+    </script>
+</body>
+
+</html>

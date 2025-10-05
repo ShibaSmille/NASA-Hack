@@ -1,0 +1,68 @@
+* {
+    box-sizing: border-box;
+}
+
+html,
+body {
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    height: 100%;
+    font-family: "Montserrat", sans-serif;
+}
+
+.screen {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+
+    width: min(420px, 95vw);
+    margin: 0 auto;
+    padding: 36px;
+    background: #F8E0E0;
+    border: 1px solid #e5e7eb;
+    border-radius: 28px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, .08);
+}
+
+.plan {
+    text-align: center;
+}
+
+.activities {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    width: 100%;
+    margin-top: 30px;
+}
+
+.activity,
+button.activity {
+    display: block;
+    width: 100%;
+    background: #fde1e7;
+    border: 2px solid #f8cbd6;
+    border-radius: 14px;
+    padding: 15px;
+    font-size: 18px;
+    font-weight: 700;
+    text-align: left;
+    color: #674D40;
+    cursor: pointer;
+    transition: .2s ease-in-out;
+    text-decoration: none;
+}
+
+.activity:hover,
+button.activity:hover {
+    background: #fbb6ce;
+}
+
+button.activity {
+    appearance: none;
+    -webkit-appearance: none;
+    outline: none;
+}
