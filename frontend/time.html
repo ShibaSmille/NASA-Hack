@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="uk">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Select date</title>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="time.css">
+</head>
+
+<body>
+    <main class="screen time">
+        <h2 class="custom-title">Custom Time </h2>
+        <div class="card">
+            <div class="label">Place</div>
+            <div id="place" class="pill">—</div>
+        </div>
+
+        <div class="card">
+            <div class="label">Date (MM / DD / YYYY)</div>
+            <div class="date">
+                <!-- МІСЯЦЬ спочатку -->
+                <select id="mon">
+                    <option>Jan</option>
+                    <option>Feb</option>
+                    <option>Mar</option>
+                    <option>Apr</option>
+                    <option>May</option>
+                    <option>Jun</option>
+                    <option selected>Jan</option>
+                    <option>Aug</option>
+                    <option>Sep</option>
+                    <option>Oct</option>
+                    <option>Nov</option>
+                    <option>Dec</option>
+                </select>
+
+            
+                <input id="day" type="number" min="1" max="31" value="27">
+
+            
+                <input id="year" type="number" min="1900" max="2100" value="2026">
+            </div>
+        </div>
+
+        <a class="btn" id="goResults" href="result.html">Check Weather</a>
+    </main>
+
+    <script>
+        // place
+        const place = JSON.parse(localStorage.getItem("chosenPlace") || "{}");
+        document.getElementById("place").textContent = place.name || "—";
+
+        // Зберігаємо дату у форматі US + ISO
+        document.getElementById("goResults").addEventListener("click", () => {
+            const monSel = document.getElementById("mon");
+            const monName = monSel.value;                  // "Jan"
+            const monIdx = monSel.selectedIndex + 1;      // 1..12
+            const day = Number(document.getElementById("day").value);
+            const year = Number(document.getElementById("year").value);
+
+            // US display: "Jan 27, 2026"
+            const displayUS = `${monName} ${day}, ${year}`;
+
+            // ISO для API: "2026-01-27"
+            const iso = `${year}-${String(monIdx).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+
+            localStorage.setItem("chosenDate", JSON.stringify({
+                month: monName, day, year, displayUS, iso
+            }));
+        });
+    </script>
+</body>
+
+</html>
