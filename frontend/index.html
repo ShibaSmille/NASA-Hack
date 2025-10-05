@@ -1,33 +1,32 @@
 <!DOCTYPE html>
-<html lang="uk">
-
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Прогноз Ризику Погоди</title>
-    <!-- Подключение Tailwind CSS CDN для стилизации -->
+    <title>Will It Rain On My Parade? (NASA Predictor)</title>
+    <!-- Connecting Tailwind CSS CDN for styling and Inter font -->
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        /* Устанавливаем светлый фон для тела страницы */
+        /* Set light background for the body */
         body {
-            background-color: #F8F9FA; /* Очень светлый серый/белый фон, как на скриншоте */
+            background-color: #F8F9FA;
             font-family: 'Inter', sans-serif;
             min-height: 100vh;
             display: flex;
-            align-items: flex-start; /* Начинаем сверху */
+            align-items: flex-start;
             justify-content: center;
-            padding-top: 5rem; /* Отступ сверху */
+            padding: 5rem 1rem; /* Padding for desktop and mobile */
         }
-        /* Главный контейнер (белая карточка) */
+        /* Main container (white card) */
         .app-container {
             width: 100%;
             max-width: 900px;
             background-color: white;
-            border-radius: 0.5rem;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            border-radius: 0.75rem; /* Slightly more rounded */
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15); /* Stronger shadow */
             padding: 2.5rem;
         }
-        /* Анимация загрузки */
+        /* Loading animation */
         .spinner {
             border-top-color: transparent;
             border-radius: 50%;
@@ -36,54 +35,47 @@
         @keyframes spin {
             to { transform: rotate(360deg); }
         }
-        /* Стиль для input[type="date"] чтобы он выглядел как остальные */
-        input[type="date"]::-webkit-calendar-picker-indicator {
-            filter: none; /* Возвращаем стандартный цвет иконки календаря для светлой темы */
-        }
-        /* Стиль для ошибки, имитирующий скриншот */
+        /* Style for error box */
         .error-box {
-            background-color: #fcebeb; /* Светло-розовый фон */
-            border: 1px solid #e57373; /* Красная рамка */
-            color: #b71c1c; /* Темно-красный текст */
-            padding: 1rem;
+            background-color: #fcebeb; /* Light pink background */
+            border: 1px solid #e57373; /* Red border */
+            color: #b71c1c; /* Dark red text */
+            padding: 1.5rem; /* Increased padding */
             border-radius: 0.5rem;
+            text-align: left;
         }
     </style>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Will It Rain On My Parade?</title>
-    <link rel="stylesheet" href="styles.css" />
 </head>
-<body class="p-4">
+<body>
 
-    <!-- Основной контейнер приложения, имитирующий "белую карточку" -->
+    <!-- Main application container -->
     <div class="app-container">
         
-        <!-- Заголовок, как на скриншоте -->
+        <!-- Header -->
         <h1 class="text-3xl font-extrabold text-center text-blue-700 mb-2">
-            Прогноз Ризику Погоди (NASA Space Apps)
+            Weather Risk Forecast (NASA Space Apps)
         </h1>
         <p class="text-gray-600 text-center mb-8">
-            Аналіз історичних даних MERRA-2 (імітація Data Rods) для планування активності.
+            Analyzing 40 years of historical NASA POWER data for reliable activity planning.
         </p>
 
-        <!-- Форма ввода данных -->
+        <!-- Data Input Form -->
         <div class="flex flex-col md:flex-row gap-4 mb-6 items-end">
             
-            <!-- Поле Города -->
+            <!-- Location Input -->
             <div class="w-full md:w-1/3">
-                <label for="city-input" class="block text-sm font-semibold text-gray-700 mb-1">Місто (Назва Міста)</label>
+                <label for="location-input" class="block text-sm font-semibold text-gray-700 mb-1">Location (City Name)</label>
                 <input 
                     type="text" 
-                    id="city-input" 
-                    placeholder="Наприклад: New York"
+                    id="location-input" 
+                    placeholder="E.g.: New York, London, Kyiv"
                     class="w-full p-3 rounded-lg border border-gray-300 bg-white text-gray-800 placeholder-gray-400 focus:outline-none focus:border-blue-500 transition duration-150"
                 >
             </div>
             
-            <!-- Поле Дата -->
+            <!-- Date Input -->
             <div class="w-full md:w-1/4">
-                <label for="date-input" class="block text-sm font-semibold text-gray-700 mb-1">Дата (РРРР-ММ-ДД)</label>
+                <label for="date-input" class="block text-sm font-semibold text-gray-700 mb-1">Date (YYYY-MM-DD)</label>
                 <input 
                     type="date" 
                     id="date-input" 
@@ -91,209 +83,252 @@
                 >
             </div>
             
-            <!-- Поле Активность -->
+            <!-- Activity Select -->
             <div class="w-full md:w-1/4">
-                <label for="activity-select" class="block text-sm font-semibold text-gray-700 mb-1">Активність</label>
+                <label for="activity-select" class="block text-sm font-semibold text-gray-700 mb-1">Activity</label>
                 <select 
                     id="activity-select"
                     class="w-full p-3 rounded-lg border border-gray-300 bg-white text-gray-800 focus:outline-none focus:border-blue-500 transition duration-150"
                 >
-                    <option value="Beach">Пляж (Beach)</option>
-                    <option value="Skiing">Лижі (Skiing)</option>
-                    <option value="Hiking">Похід (Hiking)</option>
-                    <option value="Fishing">Рибалка (Fishing)</option>
-                    <option value="Festival">Фестиваль (Outdoor Festival)</option>
+                    <option value="Beach">Beach Day</option>
+                    <option value="Skiing">Skiing / Winter Sports</option>
+                    <option value="Hiking">Hiking / Trekking</option>
+                    <option value="Fishing">Fishing</option>
+                    <option value="Festival">Outdoor Festival</option>
                 </select>
             </div>
 
-            <!-- Кнопка Расчета -->
+            <!-- Calculation Button -->
             <button 
                 id="calculate-button"
                 onclick="handleCalculation()" 
                 class="w-full md:w-1/5 bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-lg shadow-md transition duration-150 transform hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50"
             >
-                Показати Ймовірність
+                Show Probability
             </button>
         </div>
 
-        <!-- Контейнер для вывода результатов и ошибок (имитирует дизайн ошибки на скриншоте) -->
-        <div id="output-container" class="mt-8 bg-gray-50 p-5 rounded-lg border border-gray-200 min-h-[100px] flex flex-col items-center justify-center">
-            <p id="output-text" class="text-gray-500 text-center">
-                Очікування введення даних...
+        <!-- Output Container for Results and Errors -->
+        <div id="output-container" class="mt-8 bg-gray-50 p-6 rounded-xl border border-gray-200 min-h-[120px] flex flex-col items-center justify-center">
+            <p id="output-text" class="text-gray-500 text-center text-lg">
+                Enter a location and date to analyze the historical weather risk.
             </p>
-            <!-- Индикатор загрузки (скрыт по умолчанию) -->
-            <div id="loading-spinner" class="hidden spinner w-8 h-8 border-4 border-blue-500"></div>
+            <!-- Loading Spinner (hidden by default) is managed by innerHTML manipulation in JS -->
         </div>
         
     </div>
 
     <script>
-        // === Переменные DOM ===
-        const cityInput = document.getElementById('city-input');
+        // === DOM Variables ===
+        const locationInput = document.getElementById('location-input');
         const dateInput = document.getElementById('date-input');
         const activitySelect = document.getElementById('activity-select');
         const outputText = document.getElementById('output-text');
         const outputContainer = document.getElementById('output-container');
-        const loadingSpinner = document.getElementById('loading-spinner');
         const calculateButton = document.getElementById('calculate-button');
+        // NOTE: The API URL is set to the provided local Flask server endpoint
+        const API_URL = "http://127.0.0.1:5000/calculate_risk"; 
 
-        // === Глобальные переменные для хранения координат ===
-        let globalLat = null;
-        let globalLon = null;
-        
-        // Вспомогательная функция для управления состоянием загрузки и сообщений
-        function setLoading(isLoading, message = "Пошук координат...") {
+        // Helper function for managing loading state and messages
+        function setLoading(isLoading, message = "Calculating Risk...") {
             calculateButton.disabled = isLoading;
-            outputContainer.classList.remove('error-box'); // Удаляем стиль ошибки
+            outputContainer.classList.remove('error-box'); // Remove error style
             
             if (isLoading) {
-                loadingSpinner.classList.remove('hidden');
-                outputText.classList.add('hidden');
+                // Set custom loading state with spinner and message
                 calculateButton.textContent = message;
+                outputContainer.innerHTML = `
+                    <div class="flex flex-col items-center justify-center">
+                        <div class="spinner w-8 h-8 border-4 border-blue-500"></div>
+                        <p class="mt-3 text-blue-600 font-medium text-center">${message}</p>
+                    </div>
+                `;
+                outputContainer.classList.remove('flex-col', 'items-center', 'justify-center');
+                outputContainer.classList.add('flex', 'items-center', 'justify-center');
+
             } else {
-                loadingSpinner.classList.add('hidden');
-                outputText.classList.remove('hidden');
-                calculateButton.textContent = 'Показати Ймовірність';
+                // Reset to default state
+                calculateButton.textContent = 'Show Probability';
+                outputContainer.classList.add('flex-col', 'items-center', 'justify-center');
+                outputContainer.classList.remove('flex', 'items-center', 'justify-content');
+                // The result content will be set by the successful response handler
             }
         }
         
-        // Вспомогательная функция для вывода ошибок в стиле скриншота
+        // Helper function to display errors in the designated style
         function displayError(title, details) {
             setLoading(false);
             outputContainer.classList.add('error-box');
-            outputText.innerHTML = `
+            outputContainer.classList.remove('justify-center'); // Align text to start in error box
+            
+            outputContainer.innerHTML = `
                 <p class="font-bold text-lg">${title}</p>
-                <ol class="list-decimal list-inside ml-4 mt-2 text-sm space-y-1">
-                    <li>Переконайтеся, що ви заповнили всі поля.</li>
-                    <li>Перевірте з'єднання з інтернетом або правильність назви міста.</li>
+                <ol class="list-disc list-inside ml-4 mt-2 text-sm space-y-1">
+                    <li>Ensure all fields are filled correctly.</li>
+                    <li>Verify the city name and country (e.g., 'Kyiv, Ukraine').</li>
+                    <li>Check that your Python server is running and accessible at: ${API_URL}</li>
                 </ol>
-                <p class="text-xs mt-3 opacity-80">Деталі помилки: ${details}</p>
+                <p class="text-xs mt-3 opacity-80">Error details: ${details}</p>
             `;
-        }
-
-        // Ключевая функция, которая обращается к API Nominatim для геокодирования
-        async function geocodeCity(cityName) {
-            setLoading(true, "Крок 1/2: Геокодування міста...");
-            
-            const NOMINATIM_URL = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(cityName)}&format=json&limit=1`;
-            
-            try {
-                const response = await fetch(NOMINATIM_URL);
-                
-                if (!response.ok) {
-                    throw new Error(`Помилка мережі: ${response.status}`);
-                }
-                
-                const data = await response.json();
-                
-                if (data && data.length > 0) {
-                    const firstResult = data[0];
-                    const lat = parseFloat(firstResult.lat).toFixed(4);
-                    const lon = parseFloat(firstResult.lon).toFixed(4);
-                    
-                    globalLat = lat;
-                    globalLon = lon;
-                    
-                    // Показываем, что геокодирование успешно и переходим к следующему шагу
-                    outputText.innerHTML = `
-                        <p class="text-green-600 font-semibold text-lg">✅ Геокодування успішно!</p>
-                        <p class="text-gray-700 text-sm">Місто: ${firstResult.display_name.split(',')[0]} | Координати: ${lat}, ${lon}</p>
-                        <p class="text-gray-500 text-sm mt-2">Перехід до аналізу даних NASA...</p>
-                    `;
-                    
-                    return { lat, lon };
-
-                } else {
-                    displayError("ПОМИЛКА: Місто не знайдено", `Місто "${cityName}" не знайдено в базі геокодування.`);
-                    return null;
-                }
-
-            } catch (error) {
-                displayError("ПОМИЛКА ПІДКЛЮЧЕННЯ", `Помилка запиту до Nominatim: ${error.message}`);
-                return null;
-            } finally {
-                // setLoading(false) вызывается в displayError или после успешного завершения getNasaData
-            }
         }
         
-        // *** НОВАЯ ФУНКЦИЯ: Симуляция запроса данных NASA ***
-        async function getNasaData(lat, lon, date, activity) {
-            setLoading(true, "Крок 2/2: Аналіз 40 років даних MERRA-2...");
+        // Get risk level text, color class, and color for the progress bar based on percentage
+        function getRiskDisplay(percentage) {
+            let level = 'Low';
+            let colorClass = 'text-green-600';
+            let barColor = 'bg-green-500';
 
-            // Имитация задержки запроса к API NASA (около 2 секунд)
-            await new Promise(resolve => setTimeout(resolve, 2000));
-
-            // Имитация логики расчета риска (случайное число)
-            const riskPercentage = Math.floor(Math.random() * 60) + 10; 
-            const riskLevel = riskPercentage < 25 ? 'Низький' : riskPercentage < 50 ? 'Середній' : 'Високий';
-            const riskColorClass = riskPercentage < 25 ? 'text-green-600' : riskPercentage < 50 ? 'text-yellow-600' : 'text-red-600';
-            
-            const resultHtml = `
-                <p class="text-blue-600 font-semibold text-xl mb-3">Результат Прогнозу Ризику</p>
-                <div class="text-center space-y-1">
-                    <p class="text-gray-700"><span class="font-bold text-gray-800">Активність:</span> ${activitySelect.options[activitySelect.selectedIndex].text} | <span class="font-bold text-gray-800">Дата:</span> ${date}</p>
-                    
-                    <div class="p-4 rounded-lg bg-gray-100 mt-3 border border-gray-200">
-                        <p class="text-4xl font-extrabold ${riskColorClass}">${riskPercentage}%</p> 
-                        <p class="text-lg text-gray-600 mt-1">Ризик поганих умов. (${riskLevel})</p>
-                    </div>
-                    
-                    <p class="text-xs text-gray-400 pt-3">
-                        * Цей відсоток розраховано на основі історичних даних NASA MERRA-2 для обраних координат.
-                    </p>
-                </div>
-            `;
-            
-            outputText.innerHTML = resultHtml;
-            setLoading(false);
+            if (percentage >= 50) {
+                level = 'High';
+                colorClass = 'text-red-600';
+                barColor = 'bg-red-500';
+            } else if (percentage >= 25) {
+                level = 'Medium';
+                colorClass = 'text-yellow-600';
+                barColor = 'bg-yellow-500';
+            }
+            return { level, colorClass, barColor };
         }
 
-
-        // === Главный Обработчик Расчета ===
+        // Main Calculation Handler
         async function handleCalculation() {
-            const cityName = cityInput.value.trim();
+            const locationName = locationInput.value.trim();
             const date = dateInput.value;
             const activity = activitySelect.value;
+            const activityDisplayName = activitySelect.options[activitySelect.selectedIndex].text;
             
-            if (!cityName || !date) {
-                displayError("ПОМИЛКА ВВЕДЕННЯ", "Будь ласка, заповніть поля Місто та Дата. Без них аналіз неможливий.");
+            if (!locationName || !date) {
+                displayError("INPUT ERROR", "Please fill in the Location and Date fields. Analysis cannot proceed without them.");
                 return;
             }
 
-            // 1. Сначала выполняем геокодирование
-            const coords = await geocodeCity(cityName);
+            setLoading(true, "Step 1/2: Geocoding Location...");
             
-            if (coords) {
-                // 2. Если геокодирование успешно, переходим к запросу данных NASA
-                await getNasaData(coords.lat, coords.lon, date, activity);
+            const payload = {
+                location: locationName,
+                date: date,
+                activity: activity
+            };
+
+            try {
+                const maxRetries = 3;
+                let response = null;
+                
+                for (let attempt = 0; attempt < maxRetries; attempt++) {
+                    setLoading(true, `Step 2/2: Analyzing 40 years of NASA data... (Attempt ${attempt + 1}/${maxRetries})`);
+                    
+                    try {
+                        response = await fetch(API_URL, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify(payload)
+                        });
+                        
+                        // Break retry loop on success or definitive client/server error
+                        if (response.ok || response.status === 400 || response.status === 404) {
+                            break; 
+                        }
+                        
+                    } catch (fetchError) {
+                        if (attempt === maxRetries - 1) {
+                            throw new Error(`Failed to connect to server: ${fetchError.message}`);
+                        }
+                        // Exponential backoff delay
+                        const delay = Math.pow(2, attempt) * 1000;
+                        console.warn(`Fetch attempt ${attempt + 1} failed. Retrying in ${delay / 1000}s...`);
+                        await new Promise(resolve => setTimeout(resolve, delay));
+                    }
+                }
+                
+                if (!response) {
+                    throw new Error("Server did not respond after multiple retries.");
+                }
+
+                const result = await response.json();
+
+                if (!response.ok) {
+                    // Handle server-side validation/errors (e.g., location not found, insufficient data)
+                    const errorMessage = result.error || `Server responded with status ${response.status}.`;
+                    displayError("CALCULATION FAILED", errorMessage);
+                    return;
+                }
+                
+                // --- Display Successful Result ---
+                const riskPercentage = Math.round(result.risk_percentage);
+                const { level, colorClass, barColor } = getRiskDisplay(riskPercentage);
+                const totalYearsAnalyzed = result.total_years_analyzed || "40+"; // Use fallback if not provided
+
+                const resultHtml = `
+                    <div class="w-full text-center">
+                        <p class="text-blue-600 font-bold text-2xl mb-4">Risk Forecast Result</p>
+                        
+                        <div class="text-gray-700 mb-6 flex flex-wrap justify-center text-sm">
+                            <span class="font-bold text-gray-800 mx-2">Location:</span> ${locationName}
+                            <span class="font-bold text-gray-800 mx-2">Date:</span> ${date}
+                            <span class="font-bold text-gray-800 mx-2">Activity:</span> ${activityDisplayName}
+                        </div>
+
+                        <!-- Progress Bar / Risk Visualization -->
+                        <div class="relative w-full md:w-3/4 mx-auto pt-1">
+                            
+                            <div class="flex mb-2 items-center justify-between">
+                                <div>
+                                    <span class="text-xs font-semibold inline-block py-1 px-2 uppercase rounded-full ${level === 'Low' ? 'text-green-600 bg-green-200' : level === 'Medium' ? 'text-yellow-600 bg-yellow-200' : 'text-red-600 bg-red-200'}">
+                                        RISK LEVEL
+                                    </span>
+                                </div>
+                                <div class="text-right">
+                                    <span class="text-4xl font-extrabold ${colorClass}">
+                                        ${riskPercentage}%
+                                    </span>
+                                </div>
+                            </div>
+
+                            <!-- The Bar itself -->
+                            <div class="flex h-4 mb-4 overflow-hidden text-xs flex rounded-full bg-gray-200">
+                                <div style="width: ${riskPercentage}%;" class="shadow-none flex flex-col text-center whitespace-nowrap text-white justify-center rounded-full ${barColor} transition-all duration-700 ease-out"></div>
+                            </div>
+                        </div>
+                        
+                        <p class="text-xl text-gray-700 mt-4 font-semibold">The calculated risk of unsuitable weather is: <span class="${colorClass}">${level}</span>.</p>
+                        
+                        <p class="text-xs text-gray-500 pt-3">
+                            * Percentage calculated based on ${totalYearsAnalyzed} years of historical NASA POWER data.
+                        </p>
+                        <p class="text-xs text-gray-500">
+                            Source: <a href="${result.source_link}" target="_blank" class="text-blue-500 hover:underline">${result.source_link}</a>
+                        </p>
+                    </div>
+                `;
+                
+                outputContainer.classList.remove('error-box');
+                outputContainer.classList.add('flex-col', 'justify-start');
+                outputContainer.innerHTML = resultHtml;
+                setLoading(false);
+
+            } catch (error) {
+                console.error("Critical calculation error:", error);
+                displayError("NETWORK OR LOGIC ERROR", error.message);
             }
         }
 
-        // Добавляем возможность запуска по нажатию Enter
-        cityInput.addEventListener('keypress', function(e) {
+        // Add ability to trigger on Enter key press in the location field
+        locationInput.addEventListener('keypress', function(e) {
             if (e.key === 'Enter') {
                 e.preventDefault(); 
                 handleCalculation();
             }
         });
         
-        // Установка даты по умолчанию и минимальной даты
+        // Set default date and minimum date on load
         window.onload = function() {
-            // Установка текущей даты в качестве значения по умолчанию
             const today = new Date().toISOString().split('T')[0];
             dateInput.value = today;
-            // Установка минимально возможной даты для MERRA-2 данных
-            dateInput.min = "1979-01-01";
+            // NASA POWER data starts in 1984, ensuring user cannot select dates before the data range
+            dateInput.min = "1984-01-01"; 
         };
 
     </script>
 
-<body>
-    <main class="screen center splash">
-        
-        <img src="./images/suncloud.png" alt="Sun and Cloud" class="hero-img" style="width:250px; height:200px">
-        <h1>Will It Rain On My Parade?</h1>
-        <a class="btn start-btn" href="plan.html">→</a>
-    </main>
 </body>
 </html>
