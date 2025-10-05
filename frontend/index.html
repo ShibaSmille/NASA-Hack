@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <title>NASA Weather Odds</title>
+</head>
+<body>
+    <h1>Прогноз ймовірності погоди (NASA E-Day)</h1>
+    <label for="location">Місце (широта,довгота):</label>
+    <input type="text" id="location" value="40.71,-74.00"><br><br>
+    
+    <label for="date">Дата (ММ-ДД):</label>
+    <input type="text" id="date" value="07-15"><br><br>
+    
+    <button onclick="fetchOdds()">Показати Ймовірність</button>
+    
+    <div id="results">
+        </div>
+
+    <script src="scripts/main.js"></script>
+</body>
+</html>
