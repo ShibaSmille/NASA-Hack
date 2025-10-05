@@ -1,171 +1,186 @@
-import json
-import random
 import datetime
+import requests
 from flask import Flask, request, jsonify
 from flask_cors import CORS
+import time # Добавляем для реализации механизма повторных попыток (Exponential Backoff)
 
-#SCIENCE
-import xarray as xr
-import pandas as pd
-import netCDF4
-import requests # Earthdata Login
-
+# --- КОНФИГУРАЦИЯ СЕРВЕРА ---
 app = Flask(__name__)
+# Включаем CORS для работы с фронтендом
 CORS(app) 
 
+# --- ПАРАМЕТРЫ РИСКА И ЛОГИКА РАСЧЕТА ---
 
-NASA_USERNAME = 'shiba_smille'  
-NASA_PASSWORD = 'Shiba09.05.09' 
-
-# Базовый URL для OPeNDAP на MERRA-2 (Global Land monthly means)
-# Внимание: Для 40-летнего ежедневного анализа лучше использовать Daily/Hourly files или Data Rods.
-# Мы используем Monthly для простоты демонстрации структуры OPeNDAP.
-OPENDAP_BASE_URL = "https://goldsmr4.gesdisc.eosdis.nasa.gov/dods/MERRA2/M2TMNXTEMP.5.12.4"
-MERRA2_VARIABLES = ['T2M', 'PRECTOT', 'U10M', 'V10M'] # Температура (К), Осадки (кг/м2/с), Ветер X/Y (м/с)
-
-# Контекстные пороговые значения (для 5 активностей)
-# T2M_MIN/MAX в Цельсиях, PRECTOT_MAX в мм/час, WIND_MAX в м/с.
+# Параметры NASA POWER: T2M (°C), PRECTOT (mm/день), WS2M (м/с)
 ACTIVITY_THRESHOLDS = {
-    'Beach': {'T2M_MIN': 24, 'PRECTOT_MAX': 5, 'WIND_MAX': 10},  
-    'Skiing': {'T2M_MAX': 0, 'PRECTOT_MAX': 1, 'WIND_MAX': 15},   
-    'Hiking': {'T2M_MAX': 30, 'PRECTOT_MAX': 5, 'WIND_MAX': 20}, 
-    'Fishing': {'PRECTOT_MAX': 10, 'WIND_MAX': 15}, 
-    'Festival': {'T2M_MAX': 32, 'PRECTOT_MAX': 5, 'WIND_MAX': 15}, 
+    'Beach': {'T2M_MIN': 24, 'PRECTOT_MAX': 5, 'WS2M_MAX': 10},  # Пляж: тепло и мало осадков/ветра
+    'Skiing': {'T2M_MAX': 0, 'PRECTOT_MAX': 1, 'WS2M_MAX': 15},   # Лыжи: холодно и почти без дождя
+    'Hiking': {'T2M_MAX': 30, 'PRECTOT_MAX': 10, 'WS2M_MAX': 20}, # Поход: не слишком жарко и умеренный ветер/дождь
+    'Fishing': {'PRECTOT_MAX': 10, 'WS2M_MAX': 15},               # Рыбалка: мало осадков и умеренный ветер
+    'Festival': {'T2M_MAX': 32, 'PRECTOT_MAX': 5, 'WS2M_MAX': 15}, # Фестиваль: не слишком жарко и без ливня
 }
 
-def calculate_bad_days(historical_data, activity):
-    """Рассчитывает количество "Плохих Дней" на основе заданных пороговых значений активности."""
+def calculate_risk_percentage(historical_data, activity):
+    """Рассчитывает процент "Плохих Дней" на основе заданных пороговых значений активности."""
     
     thresholds = ACTIVITY_THRESHOLDS.get(activity, {})
     bad_days = 0
-    total_days = historical_data.shape[0]
+    total_days = len(historical_data)
 
-    for index, row in historical_data.iterrows():
+    if total_days == 0:
+        return 0
+        
+    for row in historical_data:
         is_bad = False
         
-        # 1. Температура (T2M)
-        # T2M в MERRA-2 дается в Кельвинах (K), переводим в Цельсии (°C).
-        T2M_Celsius = row.get('T2M', 293.15) - 273.15 
+        # Получаем данные
+        temp = row.get('Temp_C', -999)
+        rain = row.get('Rain_mm', -999)
+        wind = row.get('Wind_m_s', -999)
         
-        if 'T2M_MIN' in thresholds and T2M_Celsius < thresholds['T2M_MIN']:
+        # Если данные пропущены (NASA использует -999.00), пропускаем этот год
+        if temp < -990 or rain < -990 or wind < -990:
+             continue 
+        
+        # 1. Температура (T2M) - Проверка на слишком холодно/слишком жарко
+        if 'T2M_MIN' in thresholds and temp < thresholds['T2M_MIN']:
             is_bad = True
-        if 'T2M_MAX' in thresholds and T2M_Celsius > thresholds['T2M_MAX']:
+        if 'T2M_MAX' in thresholds and temp > thresholds['T2M_MAX']:
             is_bad = True
             
-        # 2. Осадки (PRECTOT)
-        # PRECTOT - суммарные осадки в kg/m2/s. Переводим в mm/hr (1 kg/m2/s = 3600 mm/hr)
-        precipitation_mm_hr = row.get('PRECTOT', 0) * 3600
-        if 'PRECTOT_MAX' in thresholds and precipitation_mm_hr > thresholds['PRECTOT_MAX']:
+        # 2. Осадки (PRECTOT) - Проверка на слишком много дождя
+        if 'PRECTOT_MAX' in thresholds and rain > thresholds['PRECTOT_MAX']:
             is_bad = True
             
-        # 3. Ветер (U10M, V10M)
-        # Скорость ветра (Wind Speed) = sqrt(U^2 + V^2)
-        U = row.get('U10M', 0)
-        V = row.get('V10M', 0)
-        wind_speed = (U**2 + V**2)**0.5
-        if 'WIND_MAX' in thresholds and wind_speed > thresholds['WIND_MAX']:
+        # 3. Ветер (WS2M) - Проверка на слишком сильный ветер
+        if 'WS2M_MAX' in thresholds and wind > thresholds['WS2M_MAX']:
             is_bad = True
 
         if is_bad:
             bad_days += 1
             
-    if total_days == 0:
-        return 0, 0
-        
+    # Расчет процента
     risk_percentage = round((bad_days / total_days) * 100)
-    return risk_percentage, total_days
+    return risk_percentage
 
+# --- ЗАГРУЗКА ДАННЫХ NASA POWER (с повторными попытками) ---
 
-def fetch_and_analyze_merra2_data(lat, lon, date_str, activity):
+def fetch_nasa_power_data(lat, lon, month, day, max_retries=3):
     """
-    Реальная функция, которая выполняет запрос к NASA OPeNDAP, используя xarray.
+    Загружает исторические климатические данные NASA POWER (1984-2023) 
+    для заданного дня и месяца с механизмом повторных попыток.
     """
+    PARAMETERS = "T2M,PRECTOT,WS2M" 
+    # API POWER предоставляет более 40 лет данных (с 1984 по 2023)
+    API_URL = f"https://power.larc.nasa.gov/api/temporal/daily/point?parameters={PARAMETERS}&community=AG&longitude={lon}&latitude={lat}&start=19840101&end=20231231&format=JSON"
+
+    print(f"Загрузка данных с NASA POWER API для Lat:{lat}, Lon:{lon}...")
     
-    if NASA_USERNAME == 'YOUR_EARTHDATA_USERNAME' or NASA_PASSWORD == 'YOUR_EARTHDATA_PASSWORD':
-        # В случае, если учетные данные не заменены, возвращаем имитацию
-        print("WARNING: Using SIMULATION. Replace NASA_USERNAME/PASSWORD for real data.")
-        target_date = datetime.datetime.strptime(date_str, '%Y-%m-%d')
-        target_month = target_date.month
-        
-        base_risk = (abs(lon) % 40) + 10 
-        if activity == 'Beach' and (target_month < 5 or target_month > 9):
-            seasonal_modifier = 25
-        elif activity == 'Skiing' and (target_month > 4 and target_month < 11):
-            seasonal_modifier = 30
-        else:
-            seasonal_modifier = 0
+    for attempt in range(max_retries):
+        try:
+            # Используем requests для запроса, авторизация не требуется
+            response = requests.get(API_URL, timeout=10) 
+            response.raise_for_status() 
+            data = response.json()
+            
+            # Парсинг данных после успешного запроса
+            yearly_data = []
+            
+            if 'properties' not in data or 'parameter' not in data['properties']:
+                print("Ошибка: Неожиданная структура данных от NASA API.")
+                return None
+                
+            temp_data = data['properties']['parameter'].get('T2M', {})
+            rain_data = data['properties']['parameter'].get('PRECTOT', {})
+            wind_data = data['properties']['parameter'].get('WS2M', {})
 
-        simulated_risk = base_risk + seasonal_modifier + random.randint(1, 10)
-        return min(95, simulated_risk)
-        
+            for date_str, temp in temp_data.items():
+                try:
+                    date_obj = datetime.datetime.strptime(date_str, '%Y%m%d')
+                except ValueError:
+                    continue
 
-    try:
-        target_date = datetime.datetime.strptime(date_str, '%Y-%m-%d')
-        target_month = target_date.month
-        
-        # 1. Аутентификация NASA Earthdata Login
-        session = requests.Session()
-        session.auth = (NASA_USERNAME, NASA_PASSWORD)
-        
-        # 2. Подключение к OPeNDAP
-        # Мы подключаемся к набору Monthly Mean и берем все доступное время.
-        # В реальном проекте здесь требуется сложный запрос на поднабор данных (subsetting) по Lat/Lon.
-        print(f"DEBUG: Attempting to open OPeNDAP dataset from {OPENDAP_BASE_URL}...")
-        ds = xr.open_dataset(OPENDAP_BASE_URL, engine='netcdf4', backend_kwargs={'session': session})
+                # Фильтруем данные, оставляя только нужный день/месяц за каждый год
+                if date_obj.month == month and date_obj.day == day:
+                    
+                    rain = rain_data.get(date_str, -999.0)
+                    wind = wind_data.get(date_str, -999.0)
+                    
+                    if temp < -990 or rain < -990 or wind < -990:
+                        continue 
+                    
+                    yearly_data.append({
+                        "Year": date_obj.year,
+                        "Temp_C": temp,
+                        "Rain_mm": rain,
+                        "Wind_m_s": wind,
+                    })
+                    
+            return yearly_data
 
-        # 3. Выборка данных по координатам и фильтрация по месяцу
-        # Находим ближайший к точке (lat, lon) узел сетки
-        ds_point = ds.sel(lat=lat, lon=lon, method='nearest')
-        
-        # Преобразуем в Pandas DataFrame
-        df = ds_point.to_dataframe().dropna()
-        
-        # Фильтруем все данные по месяцу, игнорируя год, чтобы получить 40 лет истории для этого месяца
-        df['month'] = df.index.month
-        historical_data = df[df['month'] == target_month]
-        
-        # 4. Расчет риска
-        risk_percentage, total_years = calculate_bad_days(historical_data, activity)
-        
-        print(f"DEBUG: Found {total_years} historical entries for month {target_month}. Risk: {risk_percentage}%")
-        return risk_percentage
+        except requests.exceptions.RequestException as e:
+            print(f"Попытка {attempt + 1}/{max_retries}: Ошибка во время запроса к NASA API: {e}")
+            if attempt < max_retries - 1:
+                # Экспоненциальная задержка: 2, 4, 8 секунд
+                sleep_time = 2 ** (attempt + 1)
+                time.sleep(sleep_time)
+                continue
+            return None # Вернуть None после последней неудачной попытки
 
-    except Exception as e:
-        print(f"NASA Data Fetch Error: {e}")
-        # Если API NASA недоступен или произошла ошибка выборки, возвращаем высокий риск и ошибку
-        return 99 # Возвращаем очень высокий риск, чтобы показать сбой
+        except Exception as e:
+            print(f"Неожиданная ошибка при обработке данных NASA: {e}")
+            return None
 
 
-@app.route('/calculate_risk', methods=['GET'])
+# --- FLASK ROUTE: ОСНОВНАЯ ТОЧКА ВХОДА ---
+
+@app.route('/calculate_risk', methods=['POST'])
 def calculate_risk():
     """
     Основная конечная точка для расчета исторического риска.
+    Принимает Координаты (lat, lon), Дату (date) и Активность (activity) в формате JSON.
     """
     
     try:
-        lat = request.args.get('lat', type=float)
-        lon = request.args.get('lon', type=float)
-        date = request.args.get('date')
-        activity = request.args.get('activity')
-        
-        if lat is None or lon is None or not date or not activity:
-            return jsonify({"error": "Missing required parameters (lat, lon, date, activity)."}), 400
-        
-        # Вызываем нашу функцию анализа (теперь она либо реальная, либо симуляция)
-        risk_percentage = fetch_and_analyze_merra2_data(lat, lon, date, activity)
+        data = request.json
+        lat = data.get('lat', None)
+        lon = data.get('lon', None)
+        date_str = data.get('date', '')
+        activity = data.get('activity', '')
 
-        # Успешный ответ
+        # 1. Проверка входящих данных
+        if lat is None or lon is None or not date_str or not activity:
+             return jsonify({"error": "В JSON-запросе отсутствуют обязательные параметры (lat, lon, date, activity)."}), 400
+
+        # 2. Парсинг Даты
+        try:
+            dt = datetime.datetime.strptime(date_str, '%Y-%m-%d')
+            month = dt.month
+            day = dt.day
+        except ValueError:
+            return jsonify({"error": "Неверный формат даты. Используйте ГГГГ-ММ-ДД."}), 400
+
+        # 3. Загрузка данных NASA POWER (настоящий запрос)
+        historical_data = fetch_nasa_power_data(lat, lon, month, day)
+
+        if historical_data is None or len(historical_data) < 20: 
+            return jsonify({"error": "Не удалось загрузить или обработать достаточно исторических данных NASA POWER. Убедитесь, что местоположение находится на суше и повторите попытку."}), 500
+
+        # 4. Расчет Риска
+        risk_percentage = calculate_risk_percentage(historical_data, activity)
+        
+        # 5. Успешный ответ
         return jsonify({
-            "risk_percentage": risk_percentage
+            "query": f"Координаты: {lat:.2f}, {lon:.2f}, Дата: {date_str}, Активность: {activity}",
+            "risk_percentage": risk_percentage,
+            "total_years_analyzed": len(historical_data),
+            "source_link": "https://power.larc.nasa.gov/"
         })
 
-    except ValueError as ve:
-        return jsonify({"error": str(ve)}), 400
     except Exception as e:
-        print(f"Server error: {e}")
-        return jsonify({"error": f"Internal server error: {e}"}), 500
+        print(f"Критическая ошибка сервера: {e}")
+        return jsonify({"error": f"Критическая внутренняя ошибка сервера: {e}"}), 500
 
 if __name__ == '__main__':
-    # Запуск сервера на порту 5000 (стандартный для Flask)
-    # Чтобы запустить: откройте терминал, перейдите в папку с файлом и выполните: python server.py
+    # В реальном развертывании используйте gunicorn или waitress
     app.run(debug=True, port=5000)
